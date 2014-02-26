@@ -31,13 +31,13 @@ type Grid = V.Vector (V.Vector Char)
 type Index = (Int, Int)
 
 -- keeps track of read only data (prefix tree & grid), and maintains an updatable set of all potential words
-type BoggleContext = RWST (PrefixTree, Grid) () (S.Set T.Text) IO
+type BoggleContext = RWS (PrefixTree, Grid) () (S.Set T.Text)
 
-runBoggleWordFinder :: PrefixTree -> Grid -> BoggleContext () -> IO (S.Set T.Text)
-runBoggleWordFinder p g m = fmap fst $ execRWST m (p, g) S.empty
+runBoggleWordFinder :: PrefixTree -> Grid -> BoggleContext () -> S.Set T.Text
+runBoggleWordFinder p g m = fst $ execRWS m (p, g) S.empty
 
 -- runs the word finding algorithm starting at each coordinate in the grid
-traverseAll :: PrefixTree -> Grid -> IO (S.Set T.Text)
+traverseAll :: PrefixTree -> Grid -> S.Set T.Text
 traverseAll p g = runBoggleWordFinder p g $ mapM_ (\ix -> findPotentialWords S.empty ix "") startingPoints
   where
     startingPoints = [ (x, y) | x <- [0 .. V.length g], y <- [0 .. V.length (g ! 0) ]]
@@ -96,7 +96,7 @@ retrieveWords = do
 main :: IO ()
 main = do
   wordTree <- retrieveWords
-  potentialWords <- traverseAll wordTree sample
+  let potentialWords = traverseAll wordTree sample
   -- print only words that are valid according to the dictionary and that are longer than three letters
   mapM_ T.putStrLn $ filter (\w -> T.length w >= 3 && Trie.member (encodeUtf8 w) wordTree) $ S.toList potentialWords
 
